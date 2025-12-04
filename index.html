@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Ujian Online</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #0f172a; /* Warna gelap modern */
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* --- STYLE LANDING PAGE --- */
+        #landing-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            z-index: 100;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 600px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #38bdf8;
+        }
+
+        p {
+            margin-bottom: 2rem;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        .rules-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: left;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .rules-box li {
+            margin-bottom: 0.5rem;
+            list-style-position: inside;
+        }
+
+        .btn-start {
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+        }
+
+        .btn-start:hover {
+            transform: scale(1.05);
+            background: #0ea5e9;
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5);
+        }
+
+        /* --- STYLE IFRAME --- */
+        #exam-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none; /* Disembunyikan dulu */
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .fullscreen-iframe {
+            width: 100%;
+            height: 100vh;
+            border: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. LANDING PAGE AREA -->
+    <div id="landing-page">
+        <div class="container">
+            <h1>Sistem Ujian Online</h1>
+            <div class="rules-box">
+                <h3>⚠️ Peraturan Ujian:</h3>
+                <ul>
+                    <li>Dilarang membuka tab lain.</li>
+                    <li>Dilarang me-minimize browser.</li>
+                    <li>Audio alarm akan berbunyi jika melanggar.</li>
+                    <li>Sistem akan otomatis masuk mode Layar Penuh.</li>
+                </ul>
+            </div>
+            <p>Klik tombol di bawah untuk memulai ujian dan mengaktifkan sistem keamanan.</p>
+            <button class="btn-start" onclick="startExam()">MULAI UJIAN SEKARANG</button>
+        </div>
+    </div>
+
+    <!-- 2. IFRAME AREA (Disembunyikan Awalnya) -->
+    <div id="exam-container">
+        <!-- 
+            Sandbox & Allow Attributes = KUNCI SUKSES LOGIN 
+        -->
+        <iframe 
+            src="https://156.67.217.161/public/" 
+            class="fullscreen-iframe"
+            id="exam-frame"
+            allow="fullscreen; camera; microphone; autoplay; encrypted-media; clipboard-read; clipboard-write"
+            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals allow-presentation allow-popups-to-escape-sandbox"
+            title="Sistem Ujian Online">
+        </iframe>
+    </div>
+    
+    <!-- Audio alarm (Anti-Curang) -->
+    <audio id="alarm-sound" preload="auto" loop>
+        <source src="https://assets.mixkit.co/active_storage/sfx/286/286-preview.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // ================= LOGIKA UTAMA =================
+        const alarmSound = document.getElementById('alarm-sound');
+        const landingPage = document.getElementById('landing-page');
+        const examContainer = document.getElementById('exam-container');
+        
+        let isExamActive = false;
+        let alarmPlaying = false;
+
+        // FUNGSI MULAI UJIAN (Dipanggil saat tombol diklik)
+        function startExam() {
+            // 1. Request Fullscreen (Wajib trigger dari user click)
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => {
+                    console.log("Fullscreen ditolak user/browser");
+                });
+            }
+
+            // 2. Unlock Audio (Browser policy hack)
+            alarmSound.volume = 0.01;
+            alarmSound.play().then(() => {
+                alarmSound.pause();
+                alarmSound.currentTime = 0;
+                alarmSound.volume = 1.0;
+            }).catch(e => console.error("Audio gagal init"));
+
+            // 3. Animasi Transisi UI
+            landingPage.style.transform = "translateY(-100%)"; // Geser ke atas
+            
+            setTimeout(() => {
+                landingPage.style.display = "none";
+                examContainer.style.display = "block";
+                
+                // Fade in effect
+                setTimeout(() => {
+                    examContainer.style.opacity = "1";
+                    isExamActive = true; // Aktifkan sensor anti-curang
+                    console.log("✅ Ujian Dimulai - Sensor Aktif");
+                }, 100);
+            }, 500);
+        }
+
+        // ================= LOGIKA ANTI-CURANG (Sama seperti sebelumnya) =================
+
+        function triggerAlarm() {
+            if (!isExamActive) return; // Jangan bunyi kalau masih di landing page
+            console.log("🚨 PELANGGARAN!");
+            
+            if (!alarmPlaying) {
+                alarmPlaying = true;
+                alarmSound.currentTime = 0;
+                alarmSound.play().catch(e => console.error("Gagal bunyi:", e));
+            }
+        }
+
+        function stopAlarm() {
+            if (alarmPlaying) {
+                alarmPlaying = false;
+                alarmSound.pause();
+                alarmSound.currentTime = 0;
+            }
+        }
+
+        // Sensor Tab Switch
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                triggerAlarm();
+            } else {
+                setTimeout(stopAlarm, 1000);
+            }
+        });
+
+        // Sensor Blur (Alt+Tab)
+        window.addEventListener('blur', function() {
+            if (!isExamActive) return;
+            // Izin fokus ke iframe
+            if (document.activeElement === document.getElementById('exam-frame')) {
+                return; 
+            }
+            triggerAlarm();
+        });
+
+        window.addEventListener('focus', function() {
+            if(isExamActive) setTimeout(stopAlarm, 500);
+        });
+
+        // Sensor Tombol Terlarang
+        document.addEventListener('keydown', function(e) {
+            if (!isExamActive) return;
+            
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+                e.preventDefault();
+                triggerAlarm();
+            }
+            if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+                e.preventDefault();
+                alert("Dilarang refresh halaman ujian!");
+            }
+        });
+
+    </script>
+</body>
+</html>
